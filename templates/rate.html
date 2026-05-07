@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Your Items — NestList</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4A7C6F;
+      --primary-light: #EAF2EF;
+      --bg: #FAFAF8;
+      --text: #1F2937;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+    }
+    * { font-family: 'Inter', sans-serif; }
+    body { background: var(--bg); color: var(--text); }
+
+    .rating-btn {
+      padding: 10px 14px; border-radius: 10px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      border: 2px solid var(--border); background: white; color: var(--text-muted);
+      transition: all 0.15s; text-align: center; line-height: 1.3;
+    }
+    .rating-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .r-love      { border-color: #059669 !important; background: #ECFDF5 !important; color: #059669 !important; }
+    .r-sometimes { border-color: #2563EB !important; background: #EFF6FF !important; color: #2563EB !important; }
+    .r-never     { border-color: #DC2626 !important; background: #FEF2F2 !important; color: #DC2626 !important; }
+    .r-wish      { border-color: #D97706 !important; background: #FFFBEB !important; color: #D97706 !important; }
+
+    .note-input {
+      border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 8px 12px; font-size: 13px; width: 100%;
+      outline: none; resize: none; font-family: 'Inter', sans-serif;
+      transition: border-color 0.15s; background: white;
+    }
+    .note-input:focus { border-color: var(--primary); }
+
+    .btn-primary {
+      background: var(--primary); color: white;
+      padding: 14px 32px; border-radius: 10px;
+      font-weight: 600; font-size: 16px; border: none; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { background: #3d6b5f; transform: translateY(-1px); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.4s ease; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <header class="py-5 px-8 flex items-center justify-between border-b border-gray-100 bg-white">
+    <div class="flex items-center gap-3">
+      <a href="/registry" class="text-sm font-medium hover:underline" style="color: var(--text-muted);">← Back to registry</a>
+      <span style="color: var(--border)">|</span>
+      <span class="font-bold" style="color: var(--primary)">🏡 NestList</span>
+    </div>
+  </header>
+
+  <!-- Rating view -->
+  <div id="rating-view" class="max-w-2xl mx-auto px-6 py-10">
+    <div class="text-center mb-10">
+      <div style="font-size: 52px; margin-bottom: 16px;">🎁</div>
+      <h1 class="text-3xl font-bold mb-3">How did everything go?</h1>
+      <p class="text-base mb-5" style="color: var(--text-muted);">
+        Tell us what you actually used — and what collected dust. Every rating makes the list smarter for people just like you.
+      </p>
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold" style="background: var(--primary-light); color: var(--primary);">
+        🔄 Your feedback powers the NestList flywheel
+      </div>
+    </div>
+
+    <div id="items-to-rate" class="grid gap-4 mb-10"></div>
+
+    <div class="text-center">
+      <button class="btn-primary" onclick="submitRatings()">Submit my ratings →</button>
+      <p class="text-xs mt-3" style="color: var(--text-muted);">Only rate items you actually received. Everything else can be skipped.</p>
+    </div>
+  </div>
+
+  <!-- Thank-you view -->
+  <div id="thankyou-view" class="hidden max-w-2xl mx-auto px-6 py-10 text-center fade-in">
+    <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+    <h1 class="text-3xl font-bold mb-4">Thank you!</h1>
+    <p class="text-lg mb-8" style="color: var(--text-muted);">
+      Your ratings help future registrants skip what didn't work and prioritize what did.
+    </p>
+
+    <div id="rating-summary" class="p-6 rounded-xl mb-6 text-left" style="background: white; border: 1px solid var(--border);"></div>
+
+    <div class="p-5 rounded-xl mb-8 text-left" style="background: var(--primary-light);">
+      <p class="font-semibold mb-1" style="color: var(--primary);">The NestList flywheel</p>
+      <p class="text-sm leading-relaxed" style="color: var(--text-muted);">
+        Your ratings join others from people in similar situations — same living space, same lifestyle, same first-time experience. Each one refines what we recommend next. You're making the next registry smarter.
+      </p>
+    </div>
+
+    <a href="/" class="btn-primary inline-block">Build another registry</a>
+  </div>
+
+  <script>
+    let registry = null;
+    const ratings = {};
+
+    const RATINGS = {
+      love:      { label: 'Used constantly',   emoji: '❤️',  cls: 'r-love' },
+      sometimes: { label: 'Used occasionally', emoji: '👍',  cls: 'r-sometimes' },
+      never:     { label: 'Never used',        emoji: '👎',  cls: 'r-never' },
+      wish:      { label: 'Wish I had this instead', emoji: '💭', cls: 'r-wish' }
+    };
+
+    function init() {
+      const stored = localStorage.getItem('nestlist_registry');
+      if (!stored) {
+        document.getElementById('items-to-rate').innerHTML =
+          '<p class="text-center" style="color:var(--text-muted)">No registry found. <a href="/" class="underline">Start here</a>.</p>';
+        return;
+      }
+      registry = JSON.parse(stored);
+
+      const items = [
+        ...registry.acceptedItems.filter(i => !i.removed && i.priority !== 'Skip'),
+        ...registry.customItems.filter(i => !i.removed)
+      ];
+
+      const container = document.getElementById('items-to-rate');
+
+      if (items.length === 0) {
+        container.innerHTML = '<p class="text-center" style="color:var(--text-muted)">Nothing to rate.</p>';
+        return;
+      }
+
+      items.forEach(item => container.appendChild(makeCard(item)));
+    }
+
+    function makeCard(item) {
+      const div = document.createElement('div');
+      div.id = `rcard-${item.id}`;
+      div.className = 'p-5 rounded-xl fade-in';
+      div.style.cssText = 'background: white; border: 1px solid var(--border);';
+
+      div.innerHTML = `
+        <div class="flex items-start justify-between gap-2 mb-4">
+          <div>
+            <h3 class="font-semibold">${item.name}</h3>
+            <p class="text-xs mt-0.5" style="color:var(--text-muted)">${item.category || 'General'}${item.price_range ? ' · ' + item.price_range : ''}</p>
+          </div>
+          <span class="text-xs font-medium px-2 py-1 rounded-full flex-shrink-0"
+            style="background:#F3F4F6;color:var(--text-muted)">${item.priority}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          ${Object.entries(RATINGS).map(([key, r]) => `
+            <button class="rating-btn" onclick="setRating('${item.id}','${key}',this)">
+              ${r.emoji} ${r.label}
+            </button>`).join('')}
+        </div>
+        <textarea class="note-input" rows="2"
+          placeholder="Optional note (e.g. 'smaller than expected', 'used it every single day')..."
+          onchange="setNote('${item.id}', this.value)"></textarea>`;
+
+      return div;
+    }
+
+    function setRating(itemId, key, el) {
+      if (!ratings[itemId]) ratings[itemId] = {};
+      ratings[itemId].rating = key;
+      const card = document.getElementById(`rcard-${itemId}`);
+      card.querySelectorAll('.rating-btn').forEach(b => {
+        Object.values(RATINGS).forEach(r => b.classList.remove(r.cls));
+      });
+      el.classList.add(RATINGS[key].cls);
+    }
+
+    function setNote(itemId, note) {
+      if (!ratings[itemId]) ratings[itemId] = {};
+      ratings[itemId].note = note;
+    }
+
+    function submitRatings() {
+      localStorage.setItem('nestlist_ratings', JSON.stringify(ratings));
+
+      const ratedIds = Object.keys(ratings).filter(id => ratings[id].rating);
+      const counts = { love: 0, sometimes: 0, never: 0, wish: 0 };
+      ratedIds.forEach(id => { const r = ratings[id].rating; if (r in counts) counts[r]++; });
+
+      const totalItems = [
+        ...registry.acceptedItems.filter(i => !i.removed && i.priority !== 'Skip'),
+        ...registry.customItems.filter(i => !i.removed)
+      ].length;
+
+      document.getElementById('rating-summary').innerHTML = `
+        <p class="font-semibold mb-4">Your rating summary</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex items-center gap-2 text-sm"><span class="text-lg">❤️</span> <span><strong>${counts.love}</strong> used constantly</span></div>
+          <div class="flex items-center gap-2 text-sm"><span class="text-lg">👍</span> <span><strong>${counts.sometimes}</strong> used occasionally</span></div>
+          <div class="flex items-center gap-2 text-sm"><span class="text-lg">👎</span> <span><strong>${counts.never}</strong> never used</span></div>
+          <div class="flex items-center gap-2 text-sm"><span class="text-lg">💭</span> <span><strong>${counts.wish}</strong> wish I had something else</span></div>
+        </div>
+        <p class="text-sm mt-4" style="color:var(--text-muted)">${ratedIds.length} of ${totalItems} items rated</p>`;
+
+      document.getElementById('rating-view').classList.add('hidden');
+      document.getElementById('thankyou-view').classList.remove('hidden');
+      window.scrollTo(0, 0);
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Registry — NestList</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4A7C6F;
+      --primary-light: #EAF2EF;
+      --bg: #FAFAF8;
+      --text: #1F2937;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+    }
+    * { font-family: 'Inter', sans-serif; }
+    body { background: var(--bg); color: var(--text); }
+
+    .item-card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      transition: box-shadow 0.2s;
+    }
+    .item-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+    .item-card.removed { opacity: 0.45; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 3px 9px; border-radius: 100px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    }
+    .badge-essential { background: #DCFCE7; color: #166534; }
+    .badge-nice      { background: #DBEAFE; color: #1E40AF; }
+    .badge-skip      { background: #F3F4F6; color: #6B7280; }
+    .badge-custom    { background: #FEF9C3; color: #854D0E; }
+
+    .filter-tab {
+      padding: 7px 16px; border-radius: 100px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: white; color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .filter-tab.active { border-color: var(--primary); background: var(--primary); color: white; }
+    .filter-tab:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+    .btn-remove {
+      padding: 6px 13px; border-radius: 8px;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      border: 1.5px solid var(--border); background: white; color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .btn-remove:hover { border-color: #EF4444; color: #EF4444; background: #FEF2F2; }
+
+    .btn-restore {
+      padding: 6px 13px; border-radius: 8px;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      border: 1.5px solid var(--primary); background: var(--primary-light); color: var(--primary);
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--primary); color: white;
+      padding: 10px 20px; border-radius: 9px;
+      font-weight: 600; font-size: 14px; border: none; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { background: #3d6b5f; }
+
+    .add-input {
+      border: 1.5px solid var(--border); border-radius: 9px;
+      padding: 9px 13px; font-size: 14px; outline: none;
+      transition: border-color 0.15s; background: white;
+      font-family: 'Inter', sans-serif; width: 100%;
+    }
+    .add-input:focus { border-color: var(--primary); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.3s ease; }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky header -->
+  <header class="sticky top-0 z-10 bg-white border-b border-gray-100">
+    <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <a href="/" class="text-sm font-medium hover:underline" style="color: var(--text-muted)">← New registry</a>
+        <span style="color: var(--border)">|</span>
+        <span class="font-bold" style="color: var(--primary)">🏡 NestList</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="shareRegistry()" class="text-sm font-medium px-4 py-2 rounded-lg border hover:bg-gray-50 transition-colors" style="border-color: var(--border); color: var(--text-muted);">
+          Share
+        </button>
+        <button onclick="window.location.href='/rate'" class="btn-primary">
+          I've received my gifts →
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-4xl mx-auto px-6 pt-8 pb-4" id="top-section">
+    <div id="registry-header"></div>
+    <div id="stats-bar" class="flex flex-wrap items-center gap-3 mt-3 mb-6"></div>
+
+    <!-- Filters -->
+    <div class="flex gap-2 flex-wrap mb-6">
+      <button class="filter-tab active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-tab" onclick="setFilter('Essential', this)">⭐ Essential</button>
+      <button class="filter-tab" onclick="setFilter('Nice to Have', this)">👍 Nice to Have</button>
+      <button class="filter-tab" onclick="setFilter('Skip', this)">⏭️ Skip</button>
+      <button class="filter-tab" onclick="setFilter('removed', this)">🗑️ Removed</button>
+    </div>
+  </div>
+
+  <!-- Items -->
+  <div class="max-w-4xl mx-auto px-6 pb-12">
+    <div id="items-container" class="grid gap-3"></div>
+
+    <!-- Add custom item -->
+    <div class="mt-8 p-6 rounded-xl" style="background: white; border: 2px dashed var(--border);">
+      <h3 class="font-semibold mb-4">Add your own item</h3>
+      <div class="grid gap-3">
+        <input type="text" id="custom-name" class="add-input" placeholder="Item name *">
+        <div class="grid grid-cols-2 gap-3">
+          <input type="text" id="custom-category" class="add-input" placeholder="Category (optional)">
+          <input type="url"  id="custom-url"      class="add-input" placeholder="Product URL (optional)">
+        </div>
+      </div>
+      <button onclick="addCustomItem()" class="btn-primary mt-4">+ Add to registry</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-white text-sm font-medium z-50" style="background: #1F2937;"></div>
+
+  <script>
+    let registry = null;
+    let currentFilter = 'all';
+
+    const PRIORITY_ORDER = { 'Essential': 0, 'Nice to Have': 1, 'Skip': 2 };
+    const LIVING_LABELS = {
+      apartment_small: 'Apartment',
+      house_yard: 'House w/ yard',
+      urban_condo: 'Urban condo',
+      suburban_house: 'Suburban house'
+    };
+    const BUDGET_LABELS = {
+      under_500: 'Under $500',
+      '500_1500': '$500–$1,500',
+      '1500_5000': '$1,500–$5,000',
+      '5000_plus': '$5,000+'
+    };
+    const TYPE_LABELS = {
+      baby: '🍼 Baby Registry',
+      wedding: '💍 Wedding Registry',
+      new_home: '🏠 New Home Registry'
+    };
+
+    function init() {
+      const stored = localStorage.getItem('nestlist_registry');
+      if (!stored) {
+        document.getElementById('items-container').innerHTML = `
+          <div class="text-center py-16" style="color: var(--text-muted);">
+            <p class="text-lg font-medium mb-2">No registry found</p>
+            <p class="mb-5">Start by taking the quiz to generate your personalized list.</p>
+            <a href="/" class="btn-primary inline-block">Take the quiz</a>
+          </div>`;
+        return;
+      }
+      registry = JSON.parse(stored);
+      renderHeader();
+      renderStats();
+      renderItems();
+    }
+
+    function renderHeader() {
+      const a = registry.quizAnswers;
+      document.getElementById('registry-header').innerHTML = `
+        <h1 class="text-3xl font-bold">${TYPE_LABELS[a.registry_type] || 'My Registry'}</h1>
+        <p class="text-sm mt-1" style="color: var(--text-muted);">
+          ${a.first_time ? 'First time' : 'Experienced'} ·
+          ${LIVING_LABELS[a.living_situation] || a.living_situation} ·
+          ${BUDGET_LABELS[a.budget] || a.budget}
+        </p>`;
+    }
+
+    function renderStats() {
+      const active = registry.acceptedItems.filter(i => !i.removed);
+      const e = active.filter(i => i.priority === 'Essential').length;
+      const n = active.filter(i => i.priority === 'Nice to Have').length;
+      const s = active.filter(i => i.priority === 'Skip').length;
+      const c = registry.customItems.filter(i => !i.removed).length;
+
+      document.getElementById('stats-bar').innerHTML = `
+        <span class="badge badge-essential">⭐ ${e} Essential</span>
+        <span class="badge badge-nice">👍 ${n} Nice to Have</span>
+        <span class="badge badge-skip">⏭️ ${s} Skip</span>
+        ${c > 0 ? `<span class="badge badge-custom">✏️ ${c} Custom</span>` : ''}
+        <span class="text-xs" style="color: var(--text-muted);">${active.length + c} items</span>`;
+    }
+
+    function renderItems() {
+      const container = document.getElementById('items-container');
+      container.innerHTML = '';
+
+      let items = [
+        ...registry.acceptedItems,
+        ...registry.customItems.map(i => ({ ...i, isCustom: true }))
+      ];
+
+      if (currentFilter === 'removed') {
+        items = items.filter(i => i.removed);
+      } else if (currentFilter === 'all') {
+        items = items.filter(i => !i.removed);
+      } else {
+        items = items.filter(i => !i.removed && i.priority === currentFilter);
+      }
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="text-center py-12" style="color: var(--text-muted);">
+          <p class="font-medium">No items here</p>
+          <p class="text-sm mt-1">Try a different filter.</p></div>`;
+        return;
+      }
+
+      items.sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 3) - (PRIORITY_ORDER[b.priority] ?? 3));
+      items.forEach(item => container.appendChild(makeCard(item)));
+    }
+
+    function makeCard(item) {
+      const div = document.createElement('div');
+      div.className = `item-card p-5 fade-in${item.removed ? ' removed' : ''}`;
+      div.id = `card-${item.id}`;
+
+      const badgeClass = item.priority === 'Essential' ? 'badge-essential'
+                       : item.priority === 'Nice to Have' ? 'badge-nice' : 'badge-skip';
+      const icon = item.priority === 'Essential' ? '⭐' : item.priority === 'Nice to Have' ? '👍' : '⏭️';
+      const searchUrl = item.url || `https://www.google.com/search?q=${encodeURIComponent(item.search_query || item.name)}`;
+
+      div.innerHTML = `
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <span class="badge ${badgeClass}">${icon} ${item.priority}</span>
+              <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background:#F3F4F6;color:var(--text-muted)">${item.category || 'General'}</span>
+              ${item.isCustom ? '<span class="badge badge-custom">Custom</span>' : ''}
+            </div>
+            <h3 class="font-semibold text-base mt-1">${item.name}</h3>
+            <p class="text-sm mt-1 leading-relaxed" style="color: var(--text-muted)">${item.reason || ''}</p>
+          </div>
+          <div class="flex flex-col items-end gap-2 flex-shrink-0">
+            ${item.price_range ? `<span class="text-sm font-semibold">${item.price_range}</span>` : ''}
+            <div class="flex gap-2 mt-1">
+              ${item.priority !== 'Skip' ? `<a href="${searchUrl}" target="_blank" rel="noopener" class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors hover:bg-gray-50" style="border-color:var(--border);color:var(--text-muted)">Find →</a>` : ''}
+              ${item.removed
+                ? `<button class="btn-restore" onclick="toggleRemove('${item.id}', false)">Restore</button>`
+                : `<button class="btn-remove"  onclick="toggleRemove('${item.id}', true)">Remove</button>`}
+            </div>
+          </div>
+        </div>`;
+      return div;
+    }
+
+    function setFilter(filter, el) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      renderItems();
+    }
+
+    function toggleRemove(id, remove) {
+      const item = registry.acceptedItems.find(i => i.id === id)
+                || registry.customItems.find(i => i.id === id);
+      if (item) { item.removed = remove; save(); renderStats(); renderItems(); }
+    }
+
+    function addCustomItem() {
+      const name = document.getElementById('custom-name').value.trim();
+      if (!name) { document.getElementById('custom-name').focus(); return; }
+      const category = document.getElementById('custom-category').value.trim();
+      const url = document.getElementById('custom-url').value.trim();
+
+      registry.customItems.push({
+        id: uid(), name,
+        category: category || 'Custom',
+        priority: 'Nice to Have',
+        price_range: '',
+        reason: 'Added manually',
+        url: url || null,
+        removed: false
+      });
+      save();
+      document.getElementById('custom-name').value = '';
+      document.getElementById('custom-category').value = '';
+      document.getElementById('custom-url').value = '';
+      renderStats();
+      if (currentFilter !== 'removed') renderItems();
+      toast('Item added to registry');
+    }
+
+    function shareRegistry() {
+      const msg = 'Registry link copied! Note: in this prototype the registry lives in your browser — the recipient would need to be on the same device to view it.';
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href).then(() => toast(msg));
+      } else {
+        prompt('Copy this link:', window.location.href);
+      }
+    }
+
+    function save() { localStorage.setItem('nestlist_registry', JSON.stringify(registry)); }
+
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 3500);
+    }
+
+    function uid() { return Math.random().toString(36).slice(2, 11); }
+
+    init();
+  </script>
+</body>
+</html>
