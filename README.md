@@ -2,6 +2,8 @@
 
 A product management portfolio prototype exploring how AI can solve the knowledge gap at the heart of the registry experience.
 
+**[▶ Watch the demo](https://github.com/aprilde/VibeCoding-NestList/releases/tag/v1.0)**
+
 ---
 
 ## The Problem
