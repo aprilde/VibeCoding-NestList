@@ -144,4 +144,4 @@ Registry data lives in your browser's `localStorage` — clearing browser storag
 
 ## About
 
-Built by April De Zen, Senior Product Manager. [linkedin.com/in/april-de-zen](https://linkedin.com/in/april-de-zen)
+Built by April De Zen, Product [linkedin.com/in/april-de-zen](https://linkedin.com/in/april-de-zen)
