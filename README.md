@@ -4,6 +4,8 @@ A product management portfolio prototype exploring how AI can solve the knowledg
 
 **[▶ Watch the demo](https://github.com/aprilde/VibeCoding-NestList/releases/tag/v1.0)**
 
+![Prototype demo](images/demo-nestlist.gif)
+
 ---
 
 ## The Problem
